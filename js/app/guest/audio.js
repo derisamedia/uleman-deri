@@ -1,5 +1,5 @@
 import { progress } from './progress.js';
-import { cache } from '../../common/cache.js';
+import { cache } from '../../connection/cache.js';
 
 export const audio = (() => {
 
@@ -27,7 +27,7 @@ export const audio = (() => {
      * @returns {Promise<void>}
      */
     const play = async () => {
-        if (!navigator.onLine) {
+        if (!navigator.onLine || !music) {
             return;
         }
 
@@ -57,13 +57,19 @@ export const audio = (() => {
      * @returns {Promise<void>}
      */
     const init = async () => {
+        if (!document.body.getAttribute('data-audio')) {
+            progress.complete('audio', true);
+            return;
+        }
+
         music = document.getElementById('button-music');
         document.addEventListener('undangan.open', () => {
-            music.style.display = 'block';
+            music.classList.remove('d-none');
         });
 
         try {
-            const url = await cache('audio').get(music.getAttribute('data-url'));
+            const cancel = new Promise((res) => document.addEventListener('progress.invalid', res, { once: true }));
+            const url = await cache('audio').get(document.body.getAttribute('data-audio'), cancel);
 
             audioEl = new Audio(url);
             audioEl.volume = 1;

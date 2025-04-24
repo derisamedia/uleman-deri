@@ -7,7 +7,7 @@ import { dto } from '../../connection/dto.js';
 import { lang } from '../../common/language.js';
 import { storage } from '../../common/storage.js';
 import { session } from '../../common/session.js';
-import { request, defaultJSON, HTTP_GET, HTTP_POST, HTTP_DELETE, HTTP_PUT, HTTP_STATUS_OK, HTTP_STATUS_CREATED } from '../../connection/request.js';
+import { request, defaultJSON, HTTP_GET, HTTP_POST, HTTP_DELETE, HTTP_PUT, HTTP_STATUS_CREATED } from '../../connection/request.js';
 
 export const comment = (() => {
 
@@ -15,11 +15,6 @@ export const comment = (() => {
      * @type {ReturnType<typeof storage>|null}
      */
     let owns = null;
-
-    /**
-     * @type {ReturnType<typeof storage>|null}
-     */
-    let user = null;
 
     /**
      * @type {ReturnType<typeof storage>|null}
@@ -34,7 +29,7 @@ export const comment = (() => {
     /**
      * @type {string[]}
      */
-    let lastRender = [];
+    const lastRender = [];
 
     /**
      * @returns {string}
@@ -113,7 +108,7 @@ export const comment = (() => {
         const original = util.base64Decode(content.getAttribute('data-comment'));
         const isCollapsed = anchor.getAttribute('data-show') === 'false';
 
-        util.safeInnerHTML(content, isCollapsed ? original : original.slice(0, card.maxCommentLength) + '...');
+        util.safeInnerHTML(content, card.convertMarkdownToHTML(util.escapeHtml(isCollapsed ? original : original.slice(0, card.maxCommentLength) + '...')));
         anchor.innerText = isCollapsed ? 'Sebagian' : 'Selengkapnya';
         anchor.setAttribute('data-show', isCollapsed ? 'true' : 'false');
     };
@@ -186,9 +181,9 @@ export const comment = (() => {
     const show = () => {
 
         // remove all event listener.
-        for (const u of lastRender) {
+        lastRender.forEach((u) => {
             like.removeListener(u);
-        }
+        });
 
         if (comments.getAttribute('data-loading') === 'false') {
             comments.setAttribute('data-loading', 'true');
@@ -210,7 +205,8 @@ export const comment = (() => {
                     return res;
                 }
 
-                lastRender = traverse(res.data.lists).map((i) => i.uuid);
+                lastRender.length = 0;
+                lastRender.push(...traverse(res.data.lists).map((i) => i.uuid));
                 showHide.set('hidden', traverse(res.data.lists, showHide.get('hidden')));
 
                 let data = await card.renderContentMany(res.data.lists);
@@ -220,16 +216,16 @@ export const comment = (() => {
 
                 util.safeInnerHTML(comments, data);
 
-                for (const u of lastRender) {
+                lastRender.forEach((u) => {
                     like.addListener(u);
-                }
+                });
 
                 return res;
             })
             .then(async (res) => {
                 comments.dispatchEvent(new Event('comment.result'));
 
-                if (res.data.lists.length > 0) {
+                if (res.data.lists) {
                     await Promise.all(res.data.lists.map((v) => fetchTracker(v)));
                 }
 
@@ -301,11 +297,8 @@ export const comment = (() => {
             isPresent = presence.value === '1';
         }
 
-        let isChecklist = false;
         const badge = document.getElementById(`badge-${id}`);
-        if (badge) {
-            isChecklist = badge.getAttribute('data-is-presence') === 'true';
-        }
+        const isChecklist = !!badge && badge.getAttribute('data-is-presence') === 'true';
 
         const gifIsOpen = gif.isOpen(id);
         const gifId = gif.getResultId(id);
@@ -380,16 +373,16 @@ export const comment = (() => {
 
         if (!gifIsOpen) {
             const showButton = document.querySelector(`[onclick="undangan.comment.showMore(this, '${id}')"]`);
-            const original = card.convertMarkdownToHTML(util.escapeHtml(form.value));
-            const content = document.getElementById(`content-${id}`);
 
-            if (original.length > card.maxCommentLength) {
+            const content = document.getElementById(`content-${id}`);
+            content.setAttribute('data-comment', util.base64Encode(form.value));
+
+            const original = card.convertMarkdownToHTML(util.escapeHtml(form.value));
+            if (form.value.length > card.maxCommentLength) {
                 util.safeInnerHTML(content, showButton?.getAttribute('data-show') === 'false' ? original.slice(0, card.maxCommentLength) + '...' : original);
-                content.setAttribute('data-comment', util.base64Encode(original));
                 showButton?.classList.replace('d-none', 'd-block');
             } else {
                 util.safeInnerHTML(content, original);
-                content.removeAttribute('data-comment');
                 showButton?.classList.replace('d-block', 'd-none');
             }
         }
@@ -418,11 +411,7 @@ export const comment = (() => {
         const id = button.getAttribute('data-uuid');
 
         const name = document.getElementById('form-name');
-        let nameValue = name.value;
-
-        if (session.isAdmin()) {
-            nameValue = user.get('name');
-        }
+        const nameValue = name.value;
 
         if (nameValue.length === 0) {
             alert('Name cannot be empty.');
@@ -542,6 +531,7 @@ export const comment = (() => {
                 comments.lastElementChild.remove();
             }
 
+            response.data.is_parent = true;
             response.data.is_admin = session.isAdmin();
             const newComment = await card.renderContentMany([response.data]);
 
@@ -555,6 +545,7 @@ export const comment = (() => {
 
             removeInnerForm(id);
 
+            response.data.is_parent = false;
             response.data.is_admin = session.isAdmin();
             document.getElementById(`reply-content-${id}`).insertAdjacentHTML('beforeend', await card.renderContentSingle(response.data));
 
@@ -606,71 +597,58 @@ export const comment = (() => {
     };
 
     /**
-     * @param {HTMLButtonElement} button 
-     * @returns {Promise<void>}
+     * @param {string} uuid 
+     * @returns {void}
      */
-    const reply = async (button) => {
-        const id = button.getAttribute('data-uuid');
+    const reply = (uuid) => {
+        changeActionButton(uuid, true);
 
-        if (document.getElementById(`inner-${id}`)) {
-            return;
-        }
-
-        changeActionButton(id, true);
-        const btn = util.disableButton(button);
-
-        await gif.remove(id);
-        gif.onOpen(id, () => gif.removeGifSearch(id));
-        btn.restore(true);
-
-        document.getElementById(`button-${id}`).insertAdjacentElement('afterend', card.renderReply(id));
+        gif.remove(uuid).then(() => {
+            gif.onOpen(uuid, () => gif.removeGifSearch(uuid));
+            document.getElementById(`button-${uuid}`).insertAdjacentElement('afterend', card.renderReply(uuid));
+        });
     };
 
     /**
      * @param {HTMLButtonElement} button 
+     * @param {boolean} is_parent
      * @returns {Promise<void>}
      */
-    const edit = async (button) => {
+    const edit = async (button, is_parent) => {
         const id = button.getAttribute('data-uuid');
 
-        if (document.getElementById(`inner-${id}`)) {
+        changeActionButton(id, true);
+
+        if (session.isAdmin()) {
+            owns.set(id, button.getAttribute('data-own'));
+        }
+
+        const badge = document.getElementById(`badge-${id}`);
+        const isChecklist = !!badge && badge.getAttribute('data-is-presence') === 'true';
+
+        const gifImage = document.getElementById(`img-gif-${id}`);
+        if (gifImage) {
+            await gif.remove(id);
+        }
+
+        const isParent = is_parent && !session.isAdmin();
+        document.getElementById(`button-${id}`).insertAdjacentElement('afterend', card.renderEdit(id, isChecklist, isParent, !!gifImage));
+
+        if (gifImage) {
+            gif.onOpen(id, () => {
+                gif.removeGifSearch(id);
+                gif.removeButtonBack(id);
+            });
+
+            await gif.open(id);
             return;
         }
 
-        changeActionButton(id, true);
-        const btn = util.disableButton(button);
+        const formInner = document.getElementById(`form-inner-${id}`);
+        const original = util.base64Decode(document.getElementById(`content-${id}`)?.getAttribute('data-comment'));
 
-        await request(HTTP_GET, '/api/comment/' + id)
-            .token(session.getToken())
-            .send(dto.commentResponse)
-            .then(async (res) => {
-                if (res.code !== HTTP_STATUS_OK) {
-                    return res;
-                }
-
-                if (res.data.gif_url) {
-                    await gif.remove(id);
-                }
-
-                const isParent = document.getElementById(id).getAttribute('data-parent') === 'true' && !session.isAdmin();
-                document.getElementById(`button-${id}`).insertAdjacentElement('afterend', card.renderEdit(id, res.data.presence, isParent, !!res.data.gif_url));
-
-                if (res.data.gif_url) {
-                    gif.onOpen(id, () => {
-                        gif.removeGifSearch(id);
-                        gif.removeButtonBack(id);
-                    });
-
-                    return gif.open(id);
-                }
-
-                const formInner = document.getElementById(`form-inner-${id}`);
-                formInner.value = res.data.comment;
-                formInner.setAttribute('data-original', util.base64Encode(res.data.comment));
-                return res;
-            });
-
-        btn.restore(true);
+        formInner.value = original;
+        formInner.setAttribute('data-original', util.base64Encode(original));
     };
 
     /**
@@ -686,7 +664,6 @@ export const comment = (() => {
         comments.addEventListener('comment.show', show);
 
         owns = storage('owns');
-        user = storage('user');
         showHide = storage('comment');
 
         if (!showHide.has('hidden')) {

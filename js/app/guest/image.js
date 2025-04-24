@@ -1,5 +1,5 @@
 import { progress } from './progress.js';
-import { cache } from '../../common/cache.js';
+import { cache } from '../../connection/cache.js';
 
 export const image = (() => {
 
@@ -85,14 +85,16 @@ export const image = (() => {
             return;
         }
 
-        const c = cache('images');
+        const c = cache('image');
+        const cancel = new Promise((res) => document.addEventListener('progress.invalid', res, { once: true }));
+
         await c.open();
-        await Promise.all(arrImages.filter((el) => el.getAttribute('data-fetch-img') === 'high').map((el) => {
-            return c.get(el.getAttribute('data-src'))
+        await Promise.allSettled(arrImages.filter((el) => el.getAttribute('data-fetch-img') === 'high').map((el) => {
+            return c.get(el.getAttribute('data-src'), cancel)
                 .then((i) => appendImage(el, i))
                 .then(() => el.classList.remove('opacity-0'));
         }));
-        await c.run(urlCache);
+        await c.run(urlCache, cancel);
     };
 
     /**

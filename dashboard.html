@@ -149,7 +149,7 @@
                                                 <i class="fa-solid fa-comments me-2" style="font-size: 1.5rem;"></i>
                                             </div>
                                             <div class="d-none d-sm-block d-md-block d-lg-block d-xl-block">
-                                                <i class="fa-solid fa-comments fa-2x me-2"></i>
+                                                <i class="fa-solid fa-comments fa-2xl me-2"></i>
                                             </div>
                                         </div>
                                     </div>
@@ -171,7 +171,7 @@
                                                 <i class="fa-solid fa-circle-check me-2" style="font-size: 1.5rem;"></i>
                                             </div>
                                             <div class="d-none d-sm-block d-md-block d-lg-block d-xl-block">
-                                                <i class="fa-solid fa-circle-check fa-2x me-2"></i>
+                                                <i class="fa-solid fa-circle-check fa-2xl me-2"></i>
                                             </div>
                                         </div>
                                     </div>
@@ -193,7 +193,7 @@
                                                 <i class="fa-solid fa-circle-xmark me-2" style="font-size: 1.5rem;"></i>
                                             </div>
                                             <div class="d-none d-sm-block d-md-block d-lg-block d-xl-block">
-                                                <i class="fa-solid fa-circle-xmark fa-2x me-2"></i>
+                                                <i class="fa-solid fa-circle-xmark fa-2xl me-2"></i>
                                             </div>
                                         </div>
                                     </div>
@@ -215,7 +215,7 @@
                                                 <i class="fa-solid fa-heart me-2" style="font-size: 1.5rem;"></i>
                                             </div>
                                             <div class="d-none d-sm-block d-md-block d-lg-block d-xl-block">
-                                                <i class="fa-solid fa-heart fa-2x me-2"></i>
+                                                <i class="fa-solid fa-heart fa-2xl me-2"></i>
                                             </div>
                                         </div>
                                     </div>
@@ -223,29 +223,35 @@
                             </div>
                         </div>
 
-                        <!-- Form -->
-                        <div class="bg-theme-auto p-3 mt-2 rounded-4 shadow">
-                            <div class="d-block" id="comment-form-default">
-                                <label for="form-comment" class="form-label fw-bold my-1"><i class="fa-solid fa-comment me-2"></i>Comment</label>
+                        <div class="row mt-2">
+                            <div class="col-lg-6 col-12">
+                                <!-- Form -->
+                                <div class="bg-theme-auto p-3 mb-3 rounded-4 shadow">
+                                    <div class="d-block" id="comment-form-default">
+                                        <label for="form-comment" class="form-label fw-bold my-1"><i class="fa-solid fa-comment me-2"></i>Comment</label>
 
-                                <div class="position-relative">
-                                    <button class="btn btn-secondary btn-sm rounded-4 shadow-sm me-1 my-1 position-absolute bottom-0 end-0" onclick="undangan.comment.gif.open(undangan.comment.gif.default)" aria-label="button gif" data-offline-disabled="false"><i class="fa-solid fa-photo-film"></i></button>
-                                    <textarea class="form-control shadow-sm mb-3 rounded-4" id="form-comment" name="form-comment" rows="3" minlength="1" maxlength="1000" placeholder="Type to comment" data-offline-disabled="false"></textarea>
+                                        <div class="position-relative">
+                                            <button class="btn btn-secondary btn-sm rounded-4 shadow-sm me-1 my-1 position-absolute bottom-0 end-0" onclick="undangan.comment.gif.open(undangan.comment.gif.default)" aria-label="button gif" data-offline-disabled="false"><i class="fa-solid fa-photo-film"></i></button>
+                                            <textarea class="form-control shadow-sm mb-3 rounded-4" id="form-comment" name="form-comment" rows="3" minlength="1" maxlength="1000" placeholder="Type to comment" data-offline-disabled="false"></textarea>
+                                        </div>
+                                    </div>
+
+                                    <div class="d-none mb-3" id="gif-form-default"></div>
+
+                                    <div class="d-flex justify-content-end mb-0">
+                                        <button onclick="undangan.comment.send(this)" class="btn btn-primary btn-sm rounded-4 shadow-sm" data-offline-disabled="false"><i class="fa-solid fa-paper-plane me-2"></i>Send</button>
+                                    </div>
                                 </div>
                             </div>
 
-                            <div class="d-none mb-3" id="gif-form-default"></div>
+                            <div class="col-lg-6 col-12">
+                                <!-- Comments -->
+                                <div class="mb-2" id="comments" data-loading="false"></div>
 
-                            <div class="d-flex justify-content-end mb-0">
-                                <button onclick="undangan.comment.send(this)" class="btn btn-primary btn-sm rounded-4 shadow-sm" data-offline-disabled="false"><i class="fa-solid fa-paper-plane me-2"></i>Send</button>
+                                <!-- Pagination -->
+                                <nav class="d-flex d-none justify-content-center py-3 mb-4" id="pagination"></nav>
                             </div>
                         </div>
-
-                        <!-- Comments -->
-                        <div class="my-2 pt-3" id="comments" data-loading="false"></div>
-
-                        <!-- Pagination -->
-                        <nav class="d-flex d-none justify-content-center py-3 mb-4" id="pagination"></nav>
                     </section>
 
                     <!-- Setting -->
@@ -309,20 +315,20 @@
                             <p class="mx-0 mt-0 mb-1 p-0 fw-bold"><i class="fa-solid fa-sliders me-2"></i>Control</p>
 
                             <div class="form-check form-switch mb-1">
-                                <input class="form-check-input shadow-sm" style="cursor:pointer;" type="checkbox" role="switch" id="filterBadWord" onchange="undangan.admin.changeFilterBadWord(this)" data-offline-disabled="false">
-                                <label class="form-check-label" style="cursor:pointer;" for="filterBadWord">Filter Bad Word</label>
+                                <input class="form-check-input shadow-sm" style="cursor:pointer;" type="checkbox" role="switch" id="filterBadWord" onchange="undangan.admin.changeCheckboxValue(this, 'filter')" data-offline-disabled="false">
+                                <label class="form-check-label" style="cursor:pointer;" for="filterBadWord">Filter bad word</label>
                             </div>
                             <div class="form-check form-switch mb-1">
-                                <input class="form-check-input shadow-sm" style="cursor:pointer;" type="checkbox" role="switch" id="replyComment" onchange="undangan.admin.replyComment(this)" data-offline-disabled="false">
-                                <label class="form-check-label" style="cursor:pointer;" for="replyComment">Can Reply Comment</label>
+                                <input class="form-check-input shadow-sm" style="cursor:pointer;" type="checkbox" role="switch" id="replyComment" onchange="undangan.admin.changeCheckboxValue(this, 'can_reply')" data-offline-disabled="false">
+                                <label class="form-check-label" style="cursor:pointer;" for="replyComment">Can reply</label>
                             </div>
                             <div class="form-check form-switch mb-1">
-                                <input class="form-check-input shadow-sm" style="cursor:pointer;" type="checkbox" role="switch" id="editComment" onchange="undangan.admin.editComment(this)" data-offline-disabled="false">
-                                <label class="form-check-label" style="cursor:pointer;" for="editComment">Can Edit Comment</label>
+                                <input class="form-check-input shadow-sm" style="cursor:pointer;" type="checkbox" role="switch" id="editComment" onchange="undangan.admin.changeCheckboxValue(this, 'can_edit')" data-offline-disabled="false">
+                                <label class="form-check-label" style="cursor:pointer;" for="editComment">Can edit</label>
                             </div>
                             <div class="form-check form-switch mb-1">
-                                <input class="form-check-input shadow-sm" style="cursor:pointer;" type="checkbox" role="switch" id="deleteComment" onchange="undangan.admin.deleteComment(this)" data-offline-disabled="false">
-                                <label class="form-check-label" style="cursor:pointer;" for="deleteComment">Can Delete Comment</label>
+                                <input class="form-check-input shadow-sm" style="cursor:pointer;" type="checkbox" role="switch" id="deleteComment" onchange="undangan.admin.changeCheckboxValue(this, 'can_delete')" data-offline-disabled="false">
+                                <label class="form-check-label" style="cursor:pointer;" for="deleteComment">Can delete</label>
                             </div>
                         </div>
 

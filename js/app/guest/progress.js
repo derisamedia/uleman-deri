@@ -30,15 +30,16 @@ export const progress = (() => {
 
     /**
      * @param {string} type
+     * @param {boolean} [skip=false]
      * @returns {void}
      */
-    const complete = (type) => {
+    const complete = (type, skip = false) => {
         if (!valid) {
             return;
         }
 
         loaded += 1;
-        info.innerText = `Loading ${type} complete ${showInformation()}`;
+        info.innerText = `Loading ${type} ${skip ? 'skipped' : 'complete'} ${showInformation()}`;
         bar.style.width = Math.min((loaded / total) * 100, 100).toString() + '%';
 
         if (loaded === total) {
@@ -52,11 +53,11 @@ export const progress = (() => {
      */
     const invalid = (type) => {
         if (valid) {
+            valid = false;
             bar.style.backgroundColor = 'red';
             info.innerText = `Error loading ${type} ${showInformation()}`;
+            document.dispatchEvent(new Event('progress.invalid'));
         }
-
-        valid = false;
     };
 
     /**
@@ -65,7 +66,7 @@ export const progress = (() => {
     const init = () => {
         info = document.getElementById('progress-info');
         bar = document.getElementById('progress-bar');
-        info.style.display = 'block';
+        info.classList.remove('d-none');
     };
 
     return {

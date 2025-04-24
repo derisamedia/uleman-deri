@@ -58,9 +58,7 @@ export const card = (() => {
      * @returns {string}
      */
     const convertMarkdownToHTML = (str) => {
-        listsMarkDown.forEach((data) => {
-            const k = data[0];
-            const v = data[1];
+        listsMarkDown.forEach(([k, v]) => {
             str = str.replace(new RegExp(`\\${k}(?=\\S)(.*?)(?<!\\s)\\${k}`, 'gs'), v);
         });
 
@@ -86,17 +84,19 @@ export const card = (() => {
     const renderAction = (c) => {
         let action = `<div class="d-flex justify-content-start align-items-center" data-button-action="${c.uuid}">`;
 
-        if (config.get('can_reply') === true || config.get('can_reply') === undefined) {
-            action += `<button style="font-size: 0.8rem;" onclick="undangan.comment.reply(this)" data-uuid="${c.uuid}" class="btn btn-sm btn-outline-auto rounded-4 py-0 me-1 shadow-sm" data-offline-disabled="false">Reply</button>`;
+        if (config.get('can_reply') !== false) {
+            action += `<button style="font-size: 0.8rem;" onclick="undangan.comment.reply('${c.uuid}')" class="btn btn-sm btn-outline-auto rounded-4 py-0 me-1 shadow-sm" data-offline-disabled="false">Reply</button>`;
         }
 
-        if (owns.has(c.uuid) && (config.get('can_edit') === true || config.get('can_edit') === undefined) && !(!!c.gif_url && config.get('tenor_key') === null)) {
-            action += `<button style="font-size: 0.8rem;" onclick="undangan.comment.edit(this)" data-uuid="${c.uuid}" class="btn btn-sm btn-outline-auto rounded-4 py-0 me-1 shadow-sm" data-offline-disabled="false">Edit</button>`;
+        if (session.isAdmin() && c.is_admin && (!c.gif_url || gif.isActive())) {
+            action += `<button style="font-size: 0.8rem;" onclick="undangan.comment.edit(this, ${c.is_parent ? 'true' : 'false'})" data-uuid="${c.uuid}" class="btn btn-sm btn-outline-auto rounded-4 py-0 me-1 shadow-sm" data-own="${c.own}" data-offline-disabled="false">Edit</button>`;
+        } else if (owns.has(c.uuid) && config.get('can_edit') !== false && (!c.gif_url || gif.isActive())) {
+            action += `<button style="font-size: 0.8rem;" onclick="undangan.comment.edit(this, ${c.is_parent ? 'true' : 'false'})" data-uuid="${c.uuid}" class="btn btn-sm btn-outline-auto rounded-4 py-0 me-1 shadow-sm" data-offline-disabled="false">Edit</button>`;
         }
 
         if (session.isAdmin()) {
             action += `<button style="font-size: 0.8rem;" onclick="undangan.comment.remove(this)" data-uuid="${c.uuid}" class="btn btn-sm btn-outline-auto rounded-4 py-0 me-1 shadow-sm" data-own="${c.own}" data-offline-disabled="false">Delete</button>`;
-        } else if (owns.has(c.uuid) && (config.get('can_delete') === true || config.get('can_delete') === undefined)) {
+        } else if (owns.has(c.uuid) && config.get('can_delete') !== false) {
             action += `<button style="font-size: 0.8rem;" onclick="undangan.comment.remove(this)" data-uuid="${c.uuid}" class="btn btn-sm btn-outline-auto rounded-4 py-0 me-1 shadow-sm" data-offline-disabled="false">Delete</button>`;
         }
 
@@ -148,12 +148,11 @@ export const card = (() => {
 
     /**
      * @param {ReturnType<typeof dto.getCommentResponse>} c
-     * @param {boolean} isParent
      * @returns {string}
      */
-    const renderHeader = (c, isParent) => {
-        if (isParent) {
-            return `class="bg-theme-auto shadow p-3 mx-0 mt-0 mb-3 rounded-4" data-parent="true"`;
+    const renderHeader = (c) => {
+        if (c.is_parent) {
+            return `class="bg-theme-auto shadow p-3 mx-0 mt-0 mb-3 rounded-4"`;
         }
 
         return `class="${!showHide.get('hidden').find((i) => i.uuid === c.uuid)['show'] ? 'd-none' : ''} overflow-x-scroll mw-100 border-start bg-theme-auto py-2 ps-2 pe-0 my-2 ms-2 me-0"`;
@@ -161,15 +160,14 @@ export const card = (() => {
 
     /**
      * @param {ReturnType<typeof dto.getCommentResponse>} c
-     * @param {boolean} isParent
      * @returns {string}
      */
-    const renderTitle = (c, isParent) => {
+    const renderTitle = (c) => {
         if (c.is_admin) {
             return `<strong class="me-1">${util.escapeHtml(c.name)}</strong><i class="fa-solid fa-certificate text-primary"></i>`;
         }
 
-        if (isParent) {
+        if (c.is_parent) {
             return `<strong class="me-1">${util.escapeHtml(c.name)}</strong><i id="badge-${c.uuid}" data-is-presence="${c.presence ? 'true' : 'false'}" class="fa-solid ${c.presence ? 'fa-circle-check text-success' : 'fa-circle-xmark text-danger'}"></i>`;
         }
 
@@ -178,13 +176,12 @@ export const card = (() => {
 
     /**
      * @param {ReturnType<typeof dto.getCommentResponse>} c
-     * @param {boolean} isParent
      * @returns {Promise<string>}
      */
-    const renderBody = async (c, isParent) => {
+    const renderBody = async (c) => {
         const head = `
         <div class="d-flex justify-content-between align-items-center">
-            <p class="text-theme-auto text-truncate m-0 p-0" style="font-size: 0.95rem;">${renderTitle(c, isParent)}</p>
+            <p class="text-theme-auto text-truncate m-0 p-0" style="font-size: 0.95rem;">${renderTitle(c)}</p>
             <small class="text-theme-auto m-0 p-0" style="font-size: 0.75rem;">${c.created_at}</small>
         </div>
         <hr class="my-1">`;
@@ -196,25 +193,24 @@ export const card = (() => {
             </div>`;
         }
 
-        const original = convertMarkdownToHTML(util.escapeHtml(c.comment));
-        const moreThanMaxLength = original.length > maxCommentLength;
+        const moreMaxLength = c.comment.length > maxCommentLength;
+        const data = convertMarkdownToHTML(util.escapeHtml(moreMaxLength ? (c.comment.slice(0, maxCommentLength) + '...') : c.comment));
 
         return head + `
-        <p class="text-theme-auto my-1 mx-0 p-0" style="white-space: pre-wrap !important; font-size: 0.95rem;" ${moreThanMaxLength ? `data-comment="${util.base64Encode(original)}"` : ''} id="content-${c.uuid}">${moreThanMaxLength ? (original.slice(0, maxCommentLength) + '...') : original}</p>
-        ${moreThanMaxLength ? `<p class="d-block mb-2 mt-0 mx-0 p-0"><a class="text-theme-auto" role="button" style="font-size: 0.85rem;" data-show="false" onclick="undangan.comment.showMore(this, '${c.uuid}')">Selengkapnya</a></p>` : ''}`;
+        <p class="text-theme-auto my-1 mx-0 p-0" style="white-space: pre-wrap !important; font-size: 0.95rem;" data-comment="${util.base64Encode(c.comment)}" id="content-${c.uuid}">${data}</p>
+        ${moreMaxLength ? `<p class="d-block mb-2 mt-0 mx-0 p-0"><a class="text-theme-auto" role="button" style="font-size: 0.85rem;" data-show="false" onclick="undangan.comment.showMore(this, '${c.uuid}')">Selengkapnya</a></p>` : ''}`;
     };
 
     /**
      * @param {ReturnType<typeof dto.getCommentResponse>} c
-     * @param {boolean} [isParent=false]
      * @returns {Promise<string>}
      */
-    const renderContent = async (c, isParent = false) => {
-        const body = await renderBody(c, isParent);
+    const renderContent = async (c) => {
+        const body = await renderBody(c);
         const resData = await Promise.all(c.comments.map((cmt) => renderContent(cmt)));
 
         return `
-        <div ${renderHeader(c, isParent)} id="${c.uuid}" style="overflow-wrap: break-word !important;">
+        <div ${renderHeader(c)} id="${c.uuid}" style="overflow-wrap: break-word !important;">
             <div id="body-content-${c.uuid}" data-tapTime="0" data-liked="false" tabindex="0">${body}</div>
             ${renderTracker(c)}
             ${renderButton(c)}
@@ -228,7 +224,7 @@ export const card = (() => {
      */
     const renderContentMany = (cs) => {
         return gif.prepareCache()
-            .then(() => Promise.all(cs.map((i) => renderContent(i, true))))
+            .then(() => Promise.all(cs.map((i) => renderContent(i))))
             .then((r) => r.join(''));
     };
 
@@ -254,7 +250,7 @@ export const card = (() => {
         <p class="my-1 mx-0 p-0" style="font-size: 0.95rem;"><i class="fa-solid fa-reply me-2"></i>Reply</p>
         <div class="d-block mb-2" id="comment-form-${id}">
             <div class="position-relative">
-                ${config.get('tenor_key') === null ? '' : `<button class="btn btn-secondary btn-sm rounded-4 shadow-sm me-1 my-1 position-absolute bottom-0 end-0" onclick="undangan.comment.gif.open('${id}')" aria-label="button gif" data-offline-disabled="false"><i class="fa-solid fa-photo-film"></i></button>`}
+                ${!gif.isActive() ? '' : `<button class="btn btn-secondary btn-sm rounded-4 shadow-sm me-1 my-1 position-absolute bottom-0 end-0" onclick="undangan.comment.gif.open('${id}')" aria-label="button gif" data-offline-disabled="false"><i class="fa-solid fa-photo-film"></i></button>`}
                 <textarea class="form-control shadow-sm rounded-4 mb-2" id="form-inner-${id}" minlength="1" maxlength="1000" placeholder="Type reply comment" rows="3" data-offline-disabled="false"></textarea>
             </div>
         </div>
@@ -288,7 +284,7 @@ export const card = (() => {
             <option value="2" ${presence ? '' : 'selected'}>&#10060; Berhalangan</option>
         </select>`}
         ${!is_gif ? `<textarea class="form-control shadow-sm rounded-4 mb-2" id="form-inner-${id}" minlength="1" maxlength="1000" placeholder="Type update comment" rows="3" data-offline-disabled="false"></textarea>    
-        ` : `${config.get('tenor_key') === null ? '' : `<div class="d-none mb-2" id="gif-form-${id}"></div>`}`}
+        ` : `${!gif.isActive() ? '' : `<div class="d-none mb-2" id="gif-form-${id}"></div>`}`}
         <div class="d-flex justify-content-end align-items-center mb-0">
             <button style="font-size: 0.8rem;" onclick="undangan.comment.cancel(this, '${id}')" class="btn btn-sm btn-outline-auto rounded-4 py-0 me-1" data-offline-disabled="false">Cancel</button>
             <button style="font-size: 0.8rem;" onclick="undangan.comment.update(this)" data-uuid="${id}" class="btn btn-sm btn-outline-auto rounded-4 py-0" data-offline-disabled="false">Update</button>

@@ -1,4 +1,4 @@
-import { request, HTTP_GET } from '../connection/request.js';
+import { request, HTTP_GET } from './request.js';
 
 export const cache = (cacheName) => {
 
@@ -29,17 +29,17 @@ export const cache = (cacheName) => {
     };
 
     /**
-     * @param {string} url
-     * @param {Promise<void>|null} [cancelReq=null]
+     * @param {string} input
+     * @param {Promise<void>|null} [cancel=null]
      * @returns {Promise<string>}
      */
-    const get = (url, cancelReq = null) => {
-        if (objectUrls.has(url)) {
-            return Promise.resolve(objectUrls.get(url));
+    const get = (input, cancel = null) => {
+        if (objectUrls.has(input)) {
+            return Promise.resolve(objectUrls.get(input));
         }
 
-        if (inFlightRequests.has(url)) {
-            return inFlightRequests.get(url);
+        if (inFlightRequests.has(input)) {
+            return inFlightRequests.get(input);
         }
 
         const inflightPromise = open().then(() => {
@@ -47,8 +47,8 @@ export const cache = (cacheName) => {
             /**
              * @returns {Promise<Blob>}
              */
-            const fetchPut = () => request(HTTP_GET, url)
-                .withCancel(cancelReq)
+            const fetchPut = () => request(HTTP_GET, input)
+                .withCancel(cancel)
                 .withRetry()
                 .default()
                 .then((r) => r.blob().then((b) => {
@@ -63,7 +63,7 @@ export const cache = (cacheName) => {
                     headers.set('Expires', expiresDate.toUTCString());
 
                     const cBlob = b.slice();
-                    return cacheObject.put(url, new Response(b, { headers })).then(() => cBlob);
+                    return cacheObject.put(input, new Response(b, { headers })).then(() => cBlob);
                 }));
 
             /**
@@ -71,15 +71,15 @@ export const cache = (cacheName) => {
              * @returns {string}
              */
             const blobToUrl = (b) => {
-                objectUrls.set(url, URL.createObjectURL(b));
-                return objectUrls.get(url);
+                objectUrls.set(input, URL.createObjectURL(b));
+                return objectUrls.get(input);
             };
 
             if (!window.isSecureContext) {
                 return fetchPut().then((b) => blobToUrl(b));
             }
 
-            return cacheObject.match(url).then((res) => {
+            return cacheObject.match(input).then((res) => {
                 if (!res) {
                     return fetchPut();
                 }
@@ -88,25 +88,25 @@ export const cache = (cacheName) => {
                 const expiresTime = expiresHeader ? (new Date(expiresHeader)).getTime() : 0;
 
                 if (Date.now() > expiresTime) {
-                    return cacheObject.delete(url).then((s) => s ? fetchPut() : res.blob());
+                    return cacheObject.delete(input).then((s) => s ? fetchPut() : res.blob());
                 }
 
                 return res.blob();
             }).then((b) => blobToUrl(b));
         }).finally(() => {
-            inFlightRequests.delete(url);
+            inFlightRequests.delete(input);
         });
 
-        inFlightRequests.set(url, inflightPromise);
+        inFlightRequests.set(input, inflightPromise);
         return inflightPromise;
     };
 
     /**
      * @param {object[]} items
-     * @param {Promise<void>|null} cancelReq
+     * @param {Promise<void>|null} cancel
      * @returns {Promise<void>}
      */
-    const run = async (items, cancelReq = null) => {
+    const run = async (items, cancel = null) => {
         await open();
         const uniq = new Map();
 
@@ -115,10 +115,11 @@ export const cache = (cacheName) => {
         }
 
         items.filter((val) => val !== null).forEach((val) => {
-            uniq.set(val.url, [...(uniq.get(val.url) ?? []), [val.res, val?.rej]]);
+            const exist = uniq.get(val.url) ?? [];
+            uniq.set(val.url, [...exist, [val.res, val?.rej]]);
         });
 
-        return Promise.allSettled(Array.from(uniq).map(([k, v]) => get(k, cancelReq)
+        return Promise.allSettled(Array.from(uniq).map(([k, v]) => get(k, cancel)
             .then((s) => {
                 v.forEach((cb) => cb[0]?.(s));
                 return s;

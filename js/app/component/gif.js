@@ -1,12 +1,10 @@
 import { util } from '../../common/util.js';
-import { cache } from '../../common/cache.js';
 import { lang } from '../../common/language.js';
 import { storage } from '../../common/storage.js';
+import { cache } from '../../connection/cache.js';
 import { request, defaultJSON, ERROR_ABORT, HTTP_GET } from '../../connection/request.js';
 
 export const gif = (() => {
-
-    const cacheName = 'gifs';
 
     const gifDefault = 'default';
 
@@ -37,13 +35,15 @@ export const gif = (() => {
      */
     let config = null;
 
+    let isEnabled = true;
+
     /**
      * @param {string} uuid
      * @param {object[]} lists
-     * @param {object} load
+     * @param {object|null} load
      * @returns {object|null[]}
      */
-    const show = (uuid, lists, load) => {
+    const show = (uuid, lists, load = null) => {
         const ctx = objectPool.get(uuid);
 
         return lists.map((data) => {
@@ -71,7 +71,7 @@ export const gif = (() => {
                     <img src="${uri}" class="img-fluid" alt="${util.escapeHtml(description)}" style="width: 100%;">
                 </figure>`);
 
-                load.step();
+                load?.step();
             };
 
             return {
@@ -107,15 +107,27 @@ export const gif = (() => {
         let total = 0;
         let loaded = 0;
 
-        if (!list.classList.contains('d-none')) {
-            load.classList.replace('d-none', 'd-flex');
-        }
-
-        info.innerText = `${loaded}/${total}`;
         list.setAttribute('data-continue', 'false');
         list.classList.replace('overflow-y-scroll', 'overflow-y-hidden');
 
+        const timeoutMs = 150;
+        let isReleased = false;
+
+        const timeoutId = setTimeout(() => {
+            if (isReleased) {
+                return;
+            }
+
+            info.innerText = `${loaded}/${total}`;
+            if (!list.classList.contains('d-none')) {
+                load.classList.replace('d-none', 'd-flex');
+            }
+        }, timeoutMs);
+
         const release = () => {
+            isReleased = true;
+            clearTimeout(timeoutId);
+
             if (!list.classList.contains('d-none')) {
                 load.classList.replace('d-flex', 'd-none');
             }
@@ -287,11 +299,8 @@ export const gif = (() => {
             return;
         }
 
-        const load = loading(uuid);
-        load.until(ctx.gifs.length);
-
         try {
-            await c.run(show(uuid, ctx.gifs, load));
+            await c.run(show(uuid, ctx.gifs));
         } catch {
             ctx.gifs.length = 0;
         }
@@ -302,8 +311,6 @@ export const gif = (() => {
                 behavior: 'instant',
             });
         }
-
-        load.release();
 
         // reset if error
         if (ctx.gifs.length === 0) {
@@ -409,7 +416,7 @@ export const gif = (() => {
                 objectPool.delete(uuid);
             }
         } else {
-            await Promise.all(Array.from(objectPool.keys()).map((k) => waitLastRequest(k)));
+            await Promise.allSettled(Array.from(objectPool.keys()).map((k) => waitLastRequest(k)));
             eventListeners.clear();
             objectPool.clear();
         }
@@ -474,8 +481,8 @@ export const gif = (() => {
      * @returns {boolean}
      */
     const isOpen = (uuid) => {
-        const container = document.getElementById(`gif-form-${uuid}`);
-        return container === null ? false : !container.classList.contains('d-none');
+        const el = document.getElementById(`gif-form-${uuid}`);
+        return el && !el.classList.contains('d-none');
     };
 
     /**
@@ -518,16 +525,21 @@ export const gif = (() => {
     };
 
     /**
+     * @returns {boolean}
+     */
+    const isActive = () => isEnabled;
+
+    /**
      * @returns {void}
      */
     const init = () => {
+        c = cache('gif');
         objectPool = new Map();
         eventListeners = new Map();
-
-        c = cache(cacheName);
         config = storage('config');
 
-        if (config.get('tenor_key') === null) {
+        if (!config.get('tenor_key')) {
+            isEnabled = false;
             document.querySelector('[onclick="undangan.comment.gif.open(undangan.comment.gif.default)"]')?.remove();
         }
     };
@@ -543,6 +555,7 @@ export const gif = (() => {
         remove,
         isOpen,
         onOpen,
+        isActive,
         getResultId,
         buttonCancel,
         removeGifSearch,

@@ -9,7 +9,7 @@ import { storage } from '../../common/storage.js';
 import { session } from '../../common/session.js';
 import { offline } from '../../common/offline.js';
 import { comment } from '../component/comment.js';
-import { basicAnimation, openAnimation } from '../../libs/confetti.js';
+import * as confetti from '../../libs/confetti.js';
 
 export const guest = (() => {
 
@@ -125,15 +125,15 @@ export const guest = (() => {
         document.dispatchEvent(new Event('undangan.open'));
 
         if (theme.isAutoMode()) {
-            document.getElementById('button-theme').style.display = 'block';
+            document.getElementById('button-theme').classList.remove('d-none');
         }
 
         slide();
         audio.play();
         theme.spyTop();
 
-        basicAnimation();
-        util.timeOut(openAnimation, 1500);
+        confetti.basicAnimation();
+        util.timeOut(confetti.openAnimation, 1500);
         util.changeOpacity(document.getElementById('welcome'), false).then((el) => el.remove());
     };
 
@@ -206,7 +206,7 @@ export const guest = (() => {
         showGuestName();
         normalizeArabicFont();
         buildGoogleCalendar();
-        document.getElementById('root').style.opacity = '1';
+        document.getElementById('root').classList.replace('opacity-0', 'opacity-100');
 
         if (information.has('presence')) {
             document.getElementById('form-presence').value = information.get('presence') ? '1' : '2';
@@ -241,15 +241,21 @@ export const guest = (() => {
 
         if (!token || token.length <= 0) {
             progress.add(); // for audio.
+            progress.add(); // for confetti.
             image.init().load();
             audio.init();
+            confetti.loadConfetti()
+                .then(() => progress.complete('confetti'))
+                .catch(() => progress.invalid('confetti'));
+
             document.getElementById('comment')?.remove();
             document.querySelector('a.nav-link[href="#comment"]')?.closest('li.nav-item')?.remove();
         }
 
         if (token && token.length > 0) {
-            // add 3 progress for config, comment, and audio.
+            // add 4 progress for config, comment, audio, and confetti.
             // before img.load();
+            progress.add();
             progress.add();
             progress.add();
             progress.add();
@@ -272,6 +278,11 @@ export const guest = (() => {
 
                 audio.init();
                 comment.init();
+
+                confetti.loadConfetti()
+                    .then(() => progress.complete('confetti'))
+                    .catch(() => progress.invalid('confetti'));
+
                 comment.show()
                     .then(() => progress.complete('comment'))
                     .catch(() => progress.invalid('comment'));
@@ -293,7 +304,6 @@ export const guest = (() => {
             storage('likes').clear();
             storage('session').clear();
             storage('comment').clear();
-            storage('tracker').clear();
         }
 
         window.addEventListener('DOMContentLoaded', domLoaded);
