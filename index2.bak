@@ -7,6 +7,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Abdul & Sri - Invitation</title>
 
+    <!-- SEO Tag -->
+    <meta name="author" content="dewanakl">
+    <meta name="language" content="id">
+    <meta name="robots" content="index, follow, max-image-preview:large">
+    <meta name="googlebot" content="index, follow, max-image-preview:large">
+    <meta name="title" content="Deri & Selly - Invitation">
+    <meta name="description" content="Tanggal 13 Juni 2025">
+    <meta name="keywords" content="undangan, wedding, undangan digital, undangan online, wedding invitation, template undangan, template undangan pernikahan, undangan pernikahan, template undangan online, wedding invitation github, template website, template website undangan pernikahan">
+    <meta property="og:title" content="Deri & Selly - Invitation">
+    <meta property="og:description" content="Tanggal 13 Juni 2025">
+    <meta property="og:keywords" content="undangan, wedding, undangan digital, undangan online, wedding invitation, template undangan, template undangan pernikahan, undangan pernikahan, template undangan online, wedding invitation github, template website, template website undangan pernikahan">
+    <meta property="og:image" content="https://deri-selly.vercel.app/assets/images/bg.webp">
+    <meta property="og:image:secure_url" content="https://deri-selly.vercel.app/assets/images/bg.webp">
+    <meta property="og:image:type" content="image/webp">
+    <meta property="og:image:alt" content="Tanggal 13 Juni 2025">
+    <meta property="og:image:width" content="980">
+    <meta property="og:image:height" content="980">
+    <meta property="og:type" content="website">
+    <meta property="og:locale" content="id_ID">
+    <meta property="og:url" content="https://deri-selly.vercel.app/">
+    <meta property="og:site_name" content="Sri & Abdul - Invitation">
 
     <!-- Appearance -->
     <meta name="mobile-web-app-capable" content="yes">
@@ -148,9 +169,9 @@
 
                         <div data-aos="fade-right" data-aos-duration="2000" class="pb-1">
                             <img src="./assets/images/placeholder.webp" data-src="./assets/images/cowo.webp" alt="cowo" onclick="undangan.guest.modal(this)" class="img-center-crop rounded-circle border border-3 border-light shadow my-4 mx-auto">
-                            <h2 class="font-esthetic m-0" style="font-size: 2.125rem;">Abdul Haris</h2>
-                            <p class="mt-3 mb-1" style="font-size: 1.25rem;">Anak Bungsu</p>
-                            <p class="mb-0" style="font-size: 0.95rem;">Bapak Didin dan Ibu Yoyoh</p>
+                            <h2 class="font-esthetic m-0" style="font-size: 2.125rem;">Muhamad Deri Sahertian</h2>
+                            <p class="mt-3 mb-1" style="font-size: 1.25rem;">Anak ke-3</p>
+                            <p class="mb-0" style="font-size: 0.95rem;">Bapak Endang dan Ibu Eti</p>
                         </div>
 
                         <!-- Love animation -->
@@ -175,9 +196,9 @@
 
                         <div data-aos="fade-left" data-aos-duration="2000" class="pb-1">
                             <img src="./assets/images/placeholder.webp" data-src="./assets/images/cewe.webp" alt="cewe" onclick="undangan.guest.modal(this)" class="img-center-crop rounded-circle border border-3 border-light shadow my-4 mx-auto">
-                            <h2 class="font-esthetic m-0" style="font-size: 2.125rem;">Siti Srihaerani</h2>
-                            <p class="mt-3 mb-1" style="font-size: 1.25rem;">Anak Pertama</p>
-                            <p class="mb-0" style="font-size: 0.95rem;">Bapak Hoer dan Ibu Uun Unayah</p>
+                            <h2 class="font-esthetic m-0" style="font-size: 2.125rem;">Selly Fitriani</h2>
+                            <p class="mt-3 mb-1" style="font-size: 1.25rem;">Anak ke-1</p>
+                            <p class="mb-0" style="font-size: 0.95rem;">Bapak Narkin dan Ibu Dedeh</p>
                         </div>
                     </div>
 
